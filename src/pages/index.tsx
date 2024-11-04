@@ -5,6 +5,7 @@ import Webcam from 'react-webcam';
 import { trpc } from '../utils/trpc';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import TicketInvoice from '../components/TicketInvoice';
 
 const Home: NextPage = () => {
   const webcamRef = useRef<Webcam>(null);
@@ -13,11 +14,7 @@ const Home: NextPage = () => {
   const [trainFrom, setTrainFrom] = useState('');
   const [trainTo, setTrainTo] = useState('');
   const [trainName, setTrainName] = useState('');
-  const [bestMatchImages, setBestMatchImages] = useState<(string | undefined)[]>([]);
-  const [matchResult, setMatchResult] = useState<Rekognition.FaceMatchList>();
-  const [userInfo, setUserInfo] = useState<
-    { name?: string; aadhar?: string; from?: string; to?: string; trainName?: string }[]
-  >([]);
+  const [ticketInfo, setTicketInfo] = useState<any | null>(null);
 
   const indexFace = trpc.useMutation('indexFace');
   const searchFaceByImage = trpc.useMutation('searchFaceByImage');
@@ -47,12 +44,16 @@ const Home: NextPage = () => {
         { image: imageSrc },
         {
           onSuccess(data) {
-            setMatchResult(data.matchedFaces ?? []);
-            setBestMatchImages(data.images ?? []);
-            setUserInfo(data.userInfo ?? []);
-
             if (data.matchedFaces && data.matchedFaces.length > 0) {
               toast.success('User Recognized!');
+              setTicketInfo({
+                imageSrc,
+                name: data.userInfo[0]?.name ?? '',
+                aadhar: data.userInfo[0]?.aadhar ?? '',
+                from: data.userInfo[0]?.from ?? '',
+                to: data.userInfo[0]?.to ?? '',
+                trainName: data.userInfo[0]?.trainName ?? '',
+              });
             } else {
               toast.info('No User Recognized.');
             }
@@ -63,12 +64,13 @@ const Home: NextPage = () => {
         }
       );
     }
-  }, [webcamRef]);
+  }, [webcamRef, searchFaceByImage]);
 
   const handleClearUserData = () => {
     clearUserData.mutate(undefined, {
       onSuccess: () => {
         toast.success('All user data cleared!');
+        setTicketInfo(null);
       },
       onError: () => {
         toast.error('Failed to clear user data.');
@@ -77,99 +79,90 @@ const Home: NextPage = () => {
   };
 
   return (
-    <div className="p-4">
+    <div
+      className="relative min-h-screen flex flex-col items-center text-white bg-cover bg-center"
+      style={{ backgroundImage: "url('/bg.jpg')" }}
+    >
       <ToastContainer />
-
-      {/* Header Section */}
-      <header className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-blue-700">DigiRail: On track for a better journey</h1>
+      <div className="absolute inset-0 bg-black opacity-70"></div>
+      <header className="z-10 text-center mb-6 mt-12">
+        <h1 className="text-3xl font-bold text-blue-400">DigiRail: On Track for a Better Journey</h1>
       </header>
 
-      <div className="flex flex-col items-center">
-        <div className="mb-4">
+      <div className="z-10 flex flex-col items-center bg-gray-800 bg-opacity-80 p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div className="mb-4 w-full">
           <input
             type="text"
             placeholder="Enter Passenger Name"
             value={passengerName}
             onChange={(e) => setPassengerName(e.target.value)}
-            className="border p-2 rounded mb-2"
+            className="bg-gray-700 text-white border w-full p-3 rounded mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             type="text"
             placeholder="Enter Aadhar Number"
             value={aadharNum}
             onChange={(e) => setAadharNum(e.target.value)}
-            className="border p-2 rounded mb-2"
+            className="bg-gray-700 text-white border w-full p-3 rounded mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             type="text"
             placeholder="From"
             value={trainFrom}
             onChange={(e) => setTrainFrom(e.target.value)}
-            className="border p-2 rounded mb-2"
+            className="bg-gray-700 text-white border w-full p-3 rounded mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             type="text"
             placeholder="To"
             value={trainTo}
             onChange={(e) => setTrainTo(e.target.value)}
-            className="border p-2 rounded mb-2"
+            className="bg-gray-700 text-white border w-full p-3 rounded mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
             type="text"
             placeholder="Enter Train Name"
             value={trainName}
             onChange={(e) => setTrainName(e.target.value)}
-            className="border p-2 rounded"
+            className="bg-gray-700 text-white border w-full p-3 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        <Webcam ref={webcamRef} screenshotFormat="image/jpeg" className="rounded-xl mb-4" />
+        <Webcam ref={webcamRef} screenshotFormat="image/jpeg" className="rounded-lg mb-4 shadow-md border-2 border-blue-500" />
 
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 w-full">
           <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-1/3 transition-colors"
             onClick={handleIndexFace}
           >
-            Register Face
+            Register
           </button>
           <button
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-1/3 transition-colors"
             onClick={handleSearchFace}
           >
-            Search Face
+            Search
           </button>
           <button
-            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-1/3 transition-colors"
             onClick={handleClearUserData}
           >
-            Clear User Data
+            Clear
           </button>
         </div>
-
-        {bestMatchImages.length > 0 &&
-          bestMatchImages.map((image, index) => (
-            <div key={index} className="flex justify-center items-center mt-6">
-              <img
-                className="w-64 h-64 object-cover rounded-md"
-                src={'data:image/jpeg;base64,' + image}
-                alt="Matched face"
-              />
-              <div className="ml-4">
-                {matchResult && (
-                  <div>
-                    <div>Similarity: {(matchResult[index]?.Similarity ?? 0).toFixed(2)}%</div>
-                    <div>Passenger Name: {userInfo[index]?.name || 'N/A'}</div>
-                    <div>Aadhar Number: {userInfo[index]?.aadhar || 'N/A'}</div>
-                    <div>From: {userInfo[index]?.from || 'N/A'}</div>
-                    <div>To: {userInfo[index]?.to || 'N/A'}</div>
-                    <div>Train Name: {userInfo[index]?.trainName || 'N/A'}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
       </div>
+
+      {ticketInfo && (
+        <TicketInvoice
+          imageSrc={ticketInfo.imageSrc}
+          name={ticketInfo.name}
+          aadhar={ticketInfo.aadhar}
+          from={ticketInfo.from}
+          to={ticketInfo.to}
+          trainName={ticketInfo.trainName}
+          onClose={() => setTicketInfo(null)}
+        />
+      )}
     </div>
   );
 };
