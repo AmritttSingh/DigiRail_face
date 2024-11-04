@@ -1,5 +1,4 @@
 // src/pages/index.tsx
-import { Rekognition } from 'aws-sdk';
 import type { NextPage } from 'next';
 import { useCallback, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
@@ -11,9 +10,14 @@ const Home: NextPage = () => {
   const webcamRef = useRef<Webcam>(null);
   const [passengerName, setPassengerName] = useState('');
   const [aadharNum, setAadharNum] = useState('');
+  const [trainFrom, setTrainFrom] = useState('');
+  const [trainTo, setTrainTo] = useState('');
+  const [trainName, setTrainName] = useState('');
   const [bestMatchImages, setBestMatchImages] = useState<(string | undefined)[]>([]);
   const [matchResult, setMatchResult] = useState<Rekognition.FaceMatchList>();
-  const [userInfo, setUserInfo] = useState<{ name?: string; aadhar?: string }[]>([]);
+  const [userInfo, setUserInfo] = useState<
+    { name?: string; aadhar?: string; from?: string; to?: string; trainName?: string }[]
+  >([]);
 
   const indexFace = trpc.useMutation('indexFace');
   const searchFaceByImage = trpc.useMutation('searchFaceByImage');
@@ -23,7 +27,7 @@ const Home: NextPage = () => {
     const imageSrc = webcamRef?.current?.getScreenshot();
     if (imageSrc) {
       indexFace.mutate(
-        { image: imageSrc, name: passengerName, aadhar: aadharNum },
+        { image: imageSrc, name: passengerName, aadhar: aadharNum, from: trainFrom, to: trainTo, trainName },
         {
           onSuccess: () => {
             toast.success('User Registered!');
@@ -34,7 +38,7 @@ const Home: NextPage = () => {
         }
       );
     }
-  }, [webcamRef, passengerName, aadharNum]);
+  }, [webcamRef, passengerName, aadharNum, trainFrom, trainTo, trainName]);
 
   const handleSearchFace = useCallback(async () => {
     const imageSrc = webcamRef?.current?.getScreenshot();
@@ -43,11 +47,11 @@ const Home: NextPage = () => {
         { image: imageSrc },
         {
           onSuccess(data) {
-            setMatchResult(data.matchedFaces);
+            setMatchResult(data.matchedFaces ?? []);
             setBestMatchImages(data.images ?? []);
             setUserInfo(data.userInfo ?? []);
 
-            if (data.matchedFaces.length > 0) {
+            if (data.matchedFaces && data.matchedFaces.length > 0) {
               toast.success('User Recognized!');
             } else {
               toast.info('No User Recognized.');
@@ -75,6 +79,12 @@ const Home: NextPage = () => {
   return (
     <div className="p-4">
       <ToastContainer />
+
+      {/* Header Section */}
+      <header className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-blue-700">DigiRail: On track for a better journey</h1>
+      </header>
+
       <div className="flex flex-col items-center">
         <div className="mb-4">
           <input
@@ -89,6 +99,27 @@ const Home: NextPage = () => {
             placeholder="Enter Aadhar Number"
             value={aadharNum}
             onChange={(e) => setAadharNum(e.target.value)}
+            className="border p-2 rounded mb-2"
+          />
+          <input
+            type="text"
+            placeholder="From"
+            value={trainFrom}
+            onChange={(e) => setTrainFrom(e.target.value)}
+            className="border p-2 rounded mb-2"
+          />
+          <input
+            type="text"
+            placeholder="To"
+            value={trainTo}
+            onChange={(e) => setTrainTo(e.target.value)}
+            className="border p-2 rounded mb-2"
+          />
+          <input
+            type="text"
+            placeholder="Enter Train Name"
+            value={trainName}
+            onChange={(e) => setTrainName(e.target.value)}
             className="border p-2 rounded"
           />
         </div>
@@ -130,6 +161,9 @@ const Home: NextPage = () => {
                     <div>Similarity: {(matchResult[index]?.Similarity ?? 0).toFixed(2)}%</div>
                     <div>Passenger Name: {userInfo[index]?.name || 'N/A'}</div>
                     <div>Aadhar Number: {userInfo[index]?.aadhar || 'N/A'}</div>
+                    <div>From: {userInfo[index]?.from || 'N/A'}</div>
+                    <div>To: {userInfo[index]?.to || 'N/A'}</div>
+                    <div>Train Name: {userInfo[index]?.trainName || 'N/A'}</div>
                   </div>
                 )}
               </div>

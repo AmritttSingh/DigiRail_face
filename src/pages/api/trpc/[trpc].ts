@@ -18,25 +18,18 @@ const s3 = new S3();
 
 export const appRouter = trpc
   .router()
-  .query('hello', {
-    input: z.object({ text: z.string().nullish() }).nullish(),
-    async resolve({ input }) {
-      const res = await rekog.listFaces({ CollectionId: 'digirail_face' }).promise();
-      console.log(res.Faces);
-      return {
-        greeting: `hello ${input?.text ?? 'world'}`,
-      };
-    },
-  })
   .mutation('indexFace', {
     input: z.object({
       image: z.string(),
       name: z.string(),
       aadhar: z.string(),
+      from: z.string(),
+      to: z.string(),
+      trainName: z.string(),
     }),
     async resolve({ input }) {
       try {
-        const { image, name, aadhar } = input;
+        const { image, name, aadhar, from, to, trainName } = input;
         const base64Img = image.replace('data:image/jpeg;base64,', '');
         const imgBuffer = Buffer.from(base64Img, 'base64');
         const imageId = uuid();
@@ -48,7 +41,7 @@ export const appRouter = trpc
           Image: { Bytes: imgBuffer },
         }).promise();
 
-        // Add face image with metadata to S3 bucket
+        // Add face image with metadata to S3 bucket (use lowercase keys)
         await s3.putObject({
           Bucket: 'digirail-s3-face',
           Key: 'faces/' + imageId + '.jpg',
@@ -56,6 +49,9 @@ export const appRouter = trpc
           Metadata: {
             name,
             aadhar,
+            from,
+            to,
+            trainname: trainName, // store in lowercase
           },
         }).promise();
 
@@ -95,9 +91,12 @@ export const appRouter = trpc
         const base64 = s3Res.Body?.toString('base64');
         const name = s3Res.Metadata?.name;
         const aadhar = s3Res.Metadata?.aadhar;
+        const from = s3Res.Metadata?.from;
+        const to = s3Res.Metadata?.to;
+        const trainName = s3Res.Metadata?.trainname; // retrieve using lowercase key
 
         images.push(base64);
-        userInfo.push({ name, aadhar });
+        userInfo.push({ name, aadhar, from, to, trainName });
       }
 
       return { matchedFaces: res.FaceMatches, images, userInfo };
@@ -116,16 +115,27 @@ export const appRouter = trpc
           await rekog.deleteFaces({ CollectionId: collectionId, FaceIds: faceIds }).promise();
         }
 
-        // Step 3: Delete corresponding images from S3
-        const objectsToDelete = faceIds.map(faceId => ({
-          Key: `faces/${faceId}.jpg`, // Assuming your images are stored like this
+        // Step 3: List all objects in the S3 bucket under the 'faces/' prefix
+        const listObjectsResponse = await s3
+          .listObjectsV2({
+            Bucket: 'digirail-s3-face',
+            Prefix: 'faces/',
+          })
+          .promise();
+
+        // Step 4: Collect keys of all objects under the 'faces/' prefix
+        const objectsToDelete = listObjectsResponse.Contents?.map((object) => ({
+          Key: object.Key!,
         }));
 
-        if (objectsToDelete.length > 0) {
-          await s3.deleteObjects({
-            Bucket: 'digirail-s3-face',
-            Delete: { Objects: objectsToDelete },
-          }).promise();
+        // Step 5: Delete the objects from S3
+        if (objectsToDelete && objectsToDelete.length > 0) {
+          await s3
+            .deleteObjects({
+              Bucket: 'digirail-s3-face',
+              Delete: { Objects: objectsToDelete },
+            })
+            .promise();
         }
 
         return { success: true };
