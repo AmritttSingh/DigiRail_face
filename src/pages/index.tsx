@@ -13,7 +13,7 @@ const Home: NextPage = () => {
   const [aadharNum, setAadharNum] = useState('');
   const [trainFrom, setTrainFrom] = useState('');
   const [trainTo, setTrainTo] = useState('');
-  const [trainName, setTrainName] = useState('');
+  const [trainNumber, setTrainNumber] = useState('');
   const [ticketInfo, setTicketInfo] = useState<any | null>(null);
 
   const indexFace = trpc.useMutation('indexFace');
@@ -23,8 +23,13 @@ const Home: NextPage = () => {
   const handleIndexFace = useCallback(() => {
     const imageSrc = webcamRef?.current?.getScreenshot();
     if (imageSrc) {
+      if (aadharNum.length !== 12 || !/^\d{12}$/.test(aadharNum)) {
+        toast.error('Aadhar card should be 12 digits');
+        return;
+      }
+
       indexFace.mutate(
-        { image: imageSrc, name: passengerName, aadhar: aadharNum, from: trainFrom, to: trainTo, trainName },
+        { image: imageSrc, name: passengerName, aadhar: aadharNum, from: trainFrom, to: trainTo, trainNumber },
         {
           onSuccess: () => {
             toast.success('User Registered!');
@@ -35,7 +40,7 @@ const Home: NextPage = () => {
         }
       );
     }
-  }, [webcamRef, passengerName, aadharNum, trainFrom, trainTo, trainName]);
+  }, [webcamRef, passengerName, aadharNum, trainFrom, trainTo, trainNumber]);
 
   const handleSearchFace = useCallback(async () => {
     const imageSrc = webcamRef?.current?.getScreenshot();
@@ -52,7 +57,7 @@ const Home: NextPage = () => {
                 aadhar: data.userInfo[0]?.aadhar ?? '',
                 from: data.userInfo[0]?.from ?? '',
                 to: data.userInfo[0]?.to ?? '',
-                trainName: data.userInfo[0]?.trainName ?? '',
+                trainNumber: data.userInfo[0]?.trainNumber ?? '',
               });
             } else {
               toast.info('No User Recognized.');
@@ -85,7 +90,10 @@ const Home: NextPage = () => {
     >
       <ToastContainer />
       <div className="absolute inset-0 bg-black opacity-70"></div>
-      <header className="z-10 text-center mb-6 mt-12">
+
+      {/* Header Section with Logo */}
+      <header className="z-10 flex items-center space-x-4 mb-6 mt-12">
+        <img src="/logo.jpg" alt="DigiRail Logo" className="w-16 h-16 rounded-full" />
         <h1 className="text-3xl font-bold text-blue-400">DigiRail: On Track for a Better Journey</h1>
       </header>
 
@@ -103,6 +111,7 @@ const Home: NextPage = () => {
             placeholder="Enter Aadhar Number"
             value={aadharNum}
             onChange={(e) => setAadharNum(e.target.value)}
+            maxLength={12}
             className="bg-gray-700 text-white border w-full p-3 rounded mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <input
@@ -121,9 +130,9 @@ const Home: NextPage = () => {
           />
           <input
             type="text"
-            placeholder="Enter Train Name"
-            value={trainName}
-            onChange={(e) => setTrainName(e.target.value)}
+            placeholder="Enter Train Number"
+            value={trainNumber}
+            onChange={(e) => setTrainNumber(e.target.value)}
             className="bg-gray-700 text-white border w-full p-3 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -159,7 +168,7 @@ const Home: NextPage = () => {
           aadhar={ticketInfo.aadhar}
           from={ticketInfo.from}
           to={ticketInfo.to}
-          trainName={ticketInfo.trainName}
+          trainNumber={ticketInfo.trainNumber}
           onClose={() => setTicketInfo(null)}
         />
       )}

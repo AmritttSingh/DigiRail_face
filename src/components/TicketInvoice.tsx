@@ -7,34 +7,34 @@ interface TicketInvoiceProps {
   aadhar: string;
   from: string;
   to: string;
-  trainName: string;
+  trainNumber: string;
   onClose: () => void;
 }
 
-const TicketInvoice: React.FC<TicketInvoiceProps> = ({ imageSrc, name, aadhar, from, to, trainName, onClose }) => {
+const TicketInvoice: React.FC<TicketInvoiceProps> = ({
+  imageSrc,
+  name,
+  aadhar,
+  from,
+  to,
+  trainNumber,
+  onClose,
+}) => {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50">
-      <div className="bg-gray-900 p-8 rounded-lg shadow-2xl w-96 relative text-white">
-        <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-          ✕
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-20">
+      <div className="bg-gray-900 text-white rounded-lg p-6 shadow-lg max-w-sm w-full">
+        <button className="text-red-500 font-bold float-right" onClick={onClose}>
+          X
         </button>
-        <h2 className="text-2xl font-semibold text-center text-blue-400 mb-6">Have a Safe Journey</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">Have a Safe Journey</h2>
         <div className="flex justify-center mb-4">
-          <img src={imageSrc} alt="Passenger" className="w-28 h-28 rounded-full border-4 border-blue-500 shadow-md" />
+          <img src={imageSrc} alt="Passenger" className="rounded-full w-32 h-32 border-2 border-blue-500" />
         </div>
-        <div className="space-y-3 text-center text-gray-300">
-          <p><strong>Name:</strong> {name}</p>
-          <p><strong>Aadhar Number:</strong> {aadhar}</p>
-          <p><strong>From:</strong> {from}</p>
-          <p><strong>To:</strong> {to}</p>
-          <p><strong>Train Name:</strong> {trainName}</p>
-        </div>
-        <button
-          onClick={onClose}
-          className="mt-6 w-full bg-blue-500 hover:bg-blue-700 text-white py-2 rounded-md font-semibold transition-colors"
-        >
-          Close
-        </button>
+        <p><strong>Name:</strong> {name}</p>
+        <p><strong>Aadhar Number:</strong> {aadhar}</p>
+        <p><strong>From:</strong> {from}</p>
+        <p><strong>To:</strong> {to}</p>
+        <p><strong>Train Number:</strong> {trainNumber}</p>
       </div>
     </div>
   );

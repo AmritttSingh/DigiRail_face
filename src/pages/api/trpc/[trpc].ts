@@ -25,11 +25,11 @@ export const appRouter = trpc
       aadhar: z.string(),
       from: z.string(),
       to: z.string(),
-      trainName: z.string(),
+      trainNumber: z.string(), // Updated to trainNumber
     }),
     async resolve({ input }) {
       try {
-        const { image, name, aadhar, from, to, trainName } = input;
+        const { image, name, aadhar, from, to, trainNumber } = input;
         const base64Img = image.replace('data:image/jpeg;base64,', '');
         const imgBuffer = Buffer.from(base64Img, 'base64');
         const imageId = uuid();
@@ -41,7 +41,7 @@ export const appRouter = trpc
           Image: { Bytes: imgBuffer },
         }).promise();
 
-        // Add face image with metadata to S3 bucket (use lowercase keys)
+        // Add face image with metadata to S3 bucket
         await s3.putObject({
           Bucket: 'digirail-s3-face',
           Key: 'faces/' + imageId + '.jpg',
@@ -51,7 +51,7 @@ export const appRouter = trpc
             aadhar,
             from,
             to,
-            trainname: trainName, // store in lowercase
+            trainnumber: trainNumber, // Stored in lowercase for retrieval
           },
         }).promise();
 
@@ -93,10 +93,10 @@ export const appRouter = trpc
         const aadhar = s3Res.Metadata?.aadhar;
         const from = s3Res.Metadata?.from;
         const to = s3Res.Metadata?.to;
-        const trainName = s3Res.Metadata?.trainname; // retrieve using lowercase key
+        const trainNumber = s3Res.Metadata?.trainnumber;
 
         images.push(base64);
-        userInfo.push({ name, aadhar, from, to, trainName });
+        userInfo.push({ name, aadhar, from, to, trainNumber });
       }
 
       return { matchedFaces: res.FaceMatches, images, userInfo };
@@ -106,36 +106,30 @@ export const appRouter = trpc
     async resolve() {
       const collectionId = 'digirail_face';
       try {
-        // Step 1: List all faces in the collection
         const listFacesResponse = await rekog.listFaces({ CollectionId: collectionId }).promise();
-        const faceIds = listFacesResponse.Faces?.map(face => face.FaceId) || [];
+        const faceIds = listFacesResponse.Faces?.map(face => face.FaceId).filter((id): id is string => id !== undefined);
 
-        // Step 2: Delete faces from the collection
-        if (faceIds.length > 0) {
-          await rekog.deleteFaces({ CollectionId: collectionId, FaceIds: faceIds }).promise();
+        if (faceIds && faceIds.length > 0) {
+          await rekog.deleteFaces({
+            CollectionId: collectionId,
+            FaceIds: faceIds,
+          }).promise();
         }
 
-        // Step 3: List all objects in the S3 bucket under the 'faces/' prefix
-        const listObjectsResponse = await s3
-          .listObjectsV2({
-            Bucket: 'digirail-s3-face',
-            Prefix: 'faces/',
-          })
-          .promise();
+        const listObjectsResponse = await s3.listObjectsV2({
+          Bucket: 'digirail-s3-face',
+          Prefix: 'faces/',
+        }).promise();
 
-        // Step 4: Collect keys of all objects under the 'faces/' prefix
         const objectsToDelete = listObjectsResponse.Contents?.map((object) => ({
           Key: object.Key!,
         }));
 
-        // Step 5: Delete the objects from S3
         if (objectsToDelete && objectsToDelete.length > 0) {
-          await s3
-            .deleteObjects({
-              Bucket: 'digirail-s3-face',
-              Delete: { Objects: objectsToDelete },
-            })
-            .promise();
+          await s3.deleteObjects({
+            Bucket: 'digirail-s3-face',
+            Delete: { Objects: objectsToDelete },
+          }).promise();
         }
 
         return { success: true };
@@ -149,10 +143,10 @@ export const appRouter = trpc
     },
   });
 
-// export type definition of API
+// Export type definition of API
 export type AppRouter = typeof appRouter;
 
-// export API handler
+// Export API handler
 export default trpcNext.createNextApiHandler({
   router: appRouter,
   createContext: () => null,
