@@ -6,6 +6,8 @@ import { trpc } from '../utils/trpc';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import TicketInvoice from '../components/TicketInvoice';
+import Rekognition from 'aws-sdk/clients/rekognition';
+import S3 from 'aws-sdk/clients/s3';
 
 const Home: NextPage = () => {
   const webcamRef = useRef<Webcam>(null);
